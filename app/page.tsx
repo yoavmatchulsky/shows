@@ -1,65 +1,107 @@
-import Image from "next/image";
+import { groupByDate, formatDate, deduplicateShows } from "@/lib/utils"
+import { fetchRAShows } from "@/lib/sources/ra"
+import { fetchLevontinShows } from "@/lib/sources/levontin"
+import { fetchTicketmasterShows } from "@/lib/sources/ticketmaster"
+import { fetchHameretz2Shows } from "@/lib/sources/hameretz2"
+import { fetchGagarinShows } from "@/lib/sources/gagarin"
+import { fillMissingImages } from "@/lib/images"
+import { getCachedShows, saveShows, getCachedSources } from "@/lib/db"
+import ShowCard from "@/components/ShowCard"
+import SourceBadge from "@/components/SourceBadge"
+import { Show } from "@/lib/types"
 
-export default function Home() {
+export const dynamic = "force-dynamic"
+
+async function loadShows() {
+  const cached = getCachedShows()
+  if (cached) return { ...cached, fromCache: true }
+
+  const days = 14
+
+  const results = await Promise.allSettled([
+    fetchRAShows(days),
+    fetchLevontinShows(days),
+    fetchTicketmasterShows(days),
+    fetchHameretz2Shows(days),
+    fetchGagarinShows(days),
+  ])
+
+  const labels = ["Resident Advisor", "Levontin 7", "Ticketmaster", "המרץ 2", "Gagarin"]
+  const sources: Record<string, number | string> = {}
+  const allShows: Show[] = []
+
+  results.forEach((r, i) => {
+    if (r.status === "fulfilled") {
+      sources[labels[i]] = r.value.length
+      allShows.push(...r.value)
+    } else {
+      sources[labels[i]] = "error"
+    }
+  })
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const cutoff = new Date(today)
+  cutoff.setDate(cutoff.getDate() + days)
+
+  const filtered = allShows.filter((s) => {
+    if (!s.date || !s.artist) return false
+    const d = new Date(s.date + "T00:00:00")
+    return d >= today && d <= cutoff
+  })
+
+  const deduped = deduplicateShows(filtered)
+  deduped.sort((a, b) => a.date.localeCompare(b.date) || a.artist.localeCompare(b.artist))
+  const shows = await fillMissingImages(deduped)
+
+  saveShows(shows, sources)
+
+  return { shows, sources, fromCache: false }
+}
+
+export default async function Home() {
+  const { shows, sources, fromCache } = await loadShows()
+  const grouped = groupByDate(shows)
+  const dates = Object.keys(grouped).sort()
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen bg-gray-950 text-white">
+      {/* Sticky header */}
+      <header className="sticky top-0 z-10 bg-gray-950/95 backdrop-blur border-b border-white/10 px-4 py-4">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-yellow-300 via-pink-400 to-fuchsia-500 bg-clip-text text-transparent">
+            Tel Aviv Shows
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-gray-400 mt-0.5 text-sm">
+            Music in the city, next 2 weeks
+            <span className="ml-2 text-gray-600 text-xs">{fromCache ? "· cached" : "· just updated"}</span>
           </p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {Object.entries(sources).map(([name, count]) => (
+              <SourceBadge key={name} name={name} count={count} />
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+      </header>
+
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        {dates.length === 0 ? (
+          <p className="text-gray-400">No shows found. Check back soon.</p>
+        ) : (
+          dates.map((date) => (
+            <section key={date} className="mb-10">
+              <h2 className="text-base font-bold text-yellow-300 mb-4 border-b border-white/10 pb-2">
+                {formatDate(date)}
+              </h2>
+              <div className="grid grid-cols-3 gap-4">
+                {grouped[date].map((show) => (
+                  <ShowCard key={show.id} show={show} />
+                ))}
+              </div>
+            </section>
+          ))
+        )}
+      </div>
+    </main>
+  )
 }
