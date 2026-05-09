@@ -24,12 +24,12 @@ export default function ShowCard({ show }: { show: Show }) {
       </div>
 
       {/* Info */}
-      <div className="flex flex-col gap-1 p-4">
+      <div className="flex flex-col gap-1 p-3 sm:p-4">
         <span className={`self-start text-xs font-semibold px-2 py-0.5 rounded-full ${bg} ${text} mb-1`}>
           {show.source}
         </span>
 
-        <p className="font-bold text-base leading-tight line-clamp-2 text-white">{show.artist}</p>
+        <p className="font-bold text-sm sm:text-base leading-tight line-clamp-2 text-white">{show.artist}</p>
 
         <div className="flex items-center gap-1.5 text-sm text-gray-400 mt-0.5">
           <span>{show.venue}</span>

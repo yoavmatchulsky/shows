@@ -67,16 +67,16 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       {/* Sticky header */}
-      <header className="sticky top-0 z-10 bg-gray-950/95 backdrop-blur border-b border-white/10 px-4 py-4">
+      <header className="sticky top-0 z-10 bg-gray-950/95 backdrop-blur border-b border-white/10 px-4 py-3 sm:py-4">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-yellow-300 via-pink-400 to-fuchsia-500 bg-clip-text text-transparent">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-yellow-300 via-pink-400 to-fuchsia-500 bg-clip-text text-transparent">
             Tel Aviv Shows
           </h1>
           <p className="text-gray-400 mt-0.5 text-sm">
             Music in the city, next 2 weeks
             <span className="ml-2 text-gray-600 text-xs">{fromCache ? "· cached" : "· just updated"}</span>
           </p>
-          <div className="flex flex-wrap gap-2 mt-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
             {Object.entries(sources).map(([name, count]) => (
               <SourceBadge key={name} name={name} count={count} />
             ))}
@@ -84,16 +84,16 @@ export default async function Home() {
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         {dates.length === 0 ? (
           <p className="text-gray-400">No shows found. Check back soon.</p>
         ) : (
           dates.map((date) => (
-            <section key={date} className="mb-10">
-              <h2 className="text-base font-bold text-yellow-300 mb-4 border-b border-white/10 pb-2">
+            <section key={date} className="mb-8 sm:mb-10">
+              <h2 className="text-sm sm:text-base font-bold text-yellow-300 mb-3 sm:mb-4 border-b border-white/10 pb-2">
                 {formatDate(date)}
               </h2>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {grouped[date].map((show) => (
                   <ShowCard key={show.id} show={show} />
                 ))}
